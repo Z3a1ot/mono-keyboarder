@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -11,16 +12,20 @@ namespace MonoKB.Main
 
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;
+        private const int WM_KEYUP = 0x0101;
+        private const int WM_SYSKEYDOWN = 0x0104;
+        private const int WM_SYSKEYUP = 0x0105;
         private LowLevelKeyboardProc m_proc;
         private IntPtr m_hookID = IntPtr.Zero;
-        private KeyCode[] m_hotkey;
         private Dictionary<KeyCode, KeyCode> m_map;
+        private Dictionary<KeyCode, bool> m_hotkeys;
 
         public LowLevelHook()
         {
             m_proc = HookCallback;
             m_hookID = SetHook(m_proc);
             m_map = new Dictionary<KeyCode, KeyCode>();
+            m_hotkeys = new Dictionary<KeyCode, bool>();
         }
 
         private IntPtr SetHook(LowLevelKeyboardProc proc)
@@ -38,25 +43,55 @@ namespace MonoKB.Main
         private IntPtr HookCallback(
             int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            bool handled = false;
+            if (nCode >= 0)
             {
-                int vkCode = Marshal.ReadInt32(lParam);
-                KeyCode keyCode = (KeyCode)vkCode;
-
-                if (!m_map.ContainsKey(keyCode))
+                KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
+                if (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)
                 {
-                    //no remap for key, go on as intended
-                    return CallNextHookEx(m_hookID, nCode, wParam, lParam);
+                    handled = HandleKeyDown(input);
                 }
-                m_map.TryGetValue(keyCode, out keyCode);
-
-                INPUT[] inputs = BuildNewInput(keyCode);
-                if (SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT))) == 0)
-                    throw new Exception();
-                Console.WriteLine((Keys)keyCode);
+                else if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
+                {
+                    handled = HandleKeyUp(input);
+                }
             }
-            //absorb key
-            return (IntPtr) 1;
+            if (handled)
+            {
+                return (IntPtr) 1;
+            }
+            return CallNextHookEx(m_hookID, nCode, wParam, lParam);
+        }
+
+        private bool HandleKeyUp(KEYBDINPUT keybdinput)
+        {
+            KeyCode keyCode = (KeyCode)keybdinput.Vk;
+            if (m_hotkeys.ContainsKey(keyCode))
+            {
+                m_hotkeys[keyCode] = false;
+                return true;
+            }
+            return false;
+        }
+
+        private bool HandleKeyDown(KEYBDINPUT keybdinput)
+        {
+            KeyCode keyCode = (KeyCode)keybdinput.Vk;
+            if (m_hotkeys.ContainsKey(keyCode))
+            {
+                m_hotkeys[keyCode] = true;
+                return true;
+            }
+            if (!m_map.ContainsKey(keyCode) || m_hotkeys.ContainsValue(false))
+            {
+                //no remap for key, go on as intended
+                return false;
+            }
+            keyCode = m_map[keyCode];
+            INPUT[] inputs = BuildNewInput(keyCode);
+            if (SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT))) == 0)
+                throw new Exception();
+            return true;
         }
 
         private INPUT[] BuildNewInput(KeyCode keyCode)
@@ -64,30 +99,36 @@ namespace MonoKB.Main
             //key down
             INPUT input = new INPUT
             {
-                Type = 1
+                Type = 1,
+                Data =
+                {
+                    Keyboard = new KEYBDINPUT()
+                    {
+                        Vk = (ushort) keyCode,
+                        Scan = 0,
+                        Flags = 0,
+                        Time = 0,
+                        ExtraInfo = IntPtr.Zero,
+                    }
+                }
             };
 
-            input.Data.Keyboard = new KEYBDINPUT()
-            {
-                Vk = (ushort) keyCode,
-                Scan = 0,
-                Flags = 0,
-                Time = 0,
-                ExtraInfo = IntPtr.Zero,
-            };
 
             //key up
             INPUT input2 = new INPUT
             {
-                Type = 1
-            };
-            input2.Data.Keyboard = new KEYBDINPUT()
-            {
-                Vk = (ushort) keyCode,
-                Scan = 0,
-                Flags = 2,
-                Time = 0,
-                ExtraInfo = IntPtr.Zero
+                Type = 1,
+                Data =
+                {
+                    Keyboard = new KEYBDINPUT()
+                    {
+                        Vk = (ushort) keyCode,
+                        Scan = 0,
+                        Flags = 2,
+                        Time = 0,
+                        ExtraInfo = IntPtr.Zero
+                    }
+                }
             };
 
             INPUT[] inputs = {input, input2};
@@ -99,9 +140,12 @@ namespace MonoKB.Main
             UnhookWindowsHookEx(m_hookID);
         }
 
-        public bool SetHotKey(KeyCode[] hotkey)
+        public bool SetHotKey(KeyCode[] hotkeys)
         {
-            m_hotkey = hotkey;
+            foreach (KeyCode keycode in hotkeys)
+            {
+                m_hotkeys.Add(keycode,false);
+            }
             return true;
         }
 
