@@ -11,7 +11,7 @@ namespace MonoKB.Main
         {
             using (m_hook = new LowLevelHook())
             {
-                m_hook.SetHotKey(new KeyCode[] {KeyCode.LCONTROL, KeyCode.LSHIFT});
+                m_hook.SetHotKey(new KeyCode[] {KeyCode.LCONTROL, KeyCode.WM_MBUTTONDOWN});
                 m_hook.MapKey(KeyCode.KEY_Q, KeyCode.KEY_Y);
                 m_hook.MapKey(KeyCode.KEY_A, KeyCode.KEY_H);
                 m_hook.MapKey(KeyCode.KEY_Z, KeyCode.KEY_N);

@@ -11,19 +11,36 @@ namespace MonoKB.Main
     {
 
         private const int WH_KEYBOARD_LL = 13;
+        private const int WH_MOUSE_LL = 14;
         private const int WM_KEYDOWN = 0x0100;
         private const int WM_KEYUP = 0x0101;
         private const int WM_SYSKEYDOWN = 0x0104;
         private const int WM_SYSKEYUP = 0x0105;
-        private LowLevelKeyboardProc m_proc;
-        private IntPtr m_hookID = IntPtr.Zero;
+        private LowLevelKeyboardProc m_keyBoardProc;
+        private LowLevelMouseProc m_mouseProc;
+        private IntPtr m_keyBoardHookID = IntPtr.Zero;
+        private IntPtr m_mouseHookID = IntPtr.Zero;
         private Dictionary<KeyCode, KeyCode> m_map;
         private Dictionary<KeyCode, bool> m_hotkeys;
 
+//        private enum MouseMessages
+//        {
+//            WM_LBUTTONDOWN = 0x0201,
+//            WM_LBUTTONUP = 0x0202,
+//            WM_MOUSEMOVE = 0x0200,
+//            WM_MOUSEWHEEL = 0x020A,
+//            WM_RBUTTONDOWN = 0x0204,
+//            WM_RBUTTONUP = 0x0205,
+//            WM_MBUTTONDOWN = 0x0207,
+//            WM_MBUTTONUP = 0x0208
+//        }
+
         public LowLevelHook()
         {
-            m_proc = HookCallback;
-            m_hookID = SetHook(m_proc);
+            m_keyBoardProc = KeyBoardHookCallback;
+            m_mouseProc = MouseHookCallback;
+            m_keyBoardHookID = SetHook(m_keyBoardProc);
+            m_mouseHookID = SetHook(m_mouseProc);
             m_map = new Dictionary<KeyCode, KeyCode>();
             m_hotkeys = new Dictionary<KeyCode, bool>();
         }
@@ -37,30 +54,98 @@ namespace MonoKB.Main
                     GetModuleHandle(curModule.ModuleName), 0);
             }
         }
+        private IntPtr SetHook(LowLevelMouseProc proc)
+        {
+            using (Process curProcess = Process.GetCurrentProcess())
+            using (ProcessModule curModule = curProcess.MainModule)
+            {
+                return SetWindowsHookEx(WH_MOUSE_LL, proc,
+                    GetModuleHandle(curModule.ModuleName), 0);
+            }
+        }
+
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+        private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
 
-        private IntPtr HookCallback(
-            int nCode, IntPtr wParam, IntPtr lParam)
+        private IntPtr KeyBoardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
             bool handled = false;
             if (nCode >= 0)
             {
-                KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
                 if (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)
                 {
+                    KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
                     handled = HandleKeyDown(input);
                 }
                 else if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
                 {
+                    KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
                     handled = HandleKeyUp(input);
                 }
             }
             if (handled)
             {
-                return (IntPtr) 1;
+                return (IntPtr)1;
             }
-            return CallNextHookEx(m_hookID, nCode, wParam, lParam);
+            return CallNextHookEx(m_keyBoardHookID, nCode, wParam, lParam);
+        }
+
+        private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            bool handled = false;
+            if (nCode >= 0)
+            {
+                if (wParam == (IntPtr)KeyCode.WM_RBUTTONDOWN)
+                {
+                    handled = HandleMouseKeyDown(KeyCode.WM_RBUTTONDOWN);
+                }
+                else if (wParam == (IntPtr)KeyCode.WM_MBUTTONDOWN)
+                {
+                    handled = HandleMouseKeyDown(KeyCode.WM_MBUTTONDOWN);
+                }
+                else if (wParam == (IntPtr)KeyCode.WM_LBUTTONDOWN)
+                {
+                    handled = HandleMouseKeyDown(KeyCode.WM_LBUTTONDOWN);
+                }
+                else if (wParam == (IntPtr)KeyCode.WM_RBUTTONUP)
+                {
+                    handled = HandleMouseKeyUp(KeyCode.WM_RBUTTONUP);
+                }
+                else if (wParam == (IntPtr)KeyCode.WM_LBUTTONDOWN)
+                {
+                    handled = HandleMouseKeyUp(KeyCode.WM_LBUTTONUP);
+                }
+                else if (wParam == (IntPtr)KeyCode.WM_MBUTTONDOWN)
+                {
+                    handled = HandleMouseKeyUp(KeyCode.WM_MBUTTONUP);
+                }
+            }
+            if (handled)
+            {
+                return (IntPtr)1;
+            }
+            return CallNextHookEx(m_keyBoardHookID, nCode, wParam, lParam);
+        }
+
+        private bool HandleMouseKeyUp(KeyCode buttonCode)
+        {
+            if (m_hotkeys.ContainsKey(buttonCode-1)) // TODO: Remove the -1 and handle mouse codes properly
+            {
+                m_hotkeys[buttonCode] = false;
+                return false;
+            }
+            return false;
+        }
+
+        private bool HandleMouseKeyDown(KeyCode buttonCode)
+        {
+            if (m_hotkeys.ContainsKey(buttonCode))
+            {
+                m_hotkeys[buttonCode] = true;
+                return false;
+            }
+            return false;
         }
 
         private bool HandleKeyUp(KEYBDINPUT keybdinput)
@@ -137,7 +222,8 @@ namespace MonoKB.Main
 
         public void Dispose()
         {
-            UnhookWindowsHookEx(m_hookID);
+            UnhookWindowsHookEx(m_keyBoardHookID);
+            UnhookWindowsHookEx(m_mouseHookID);
         }
 
         public bool SetHotKey(KeyCode[] hotkeys)
@@ -159,6 +245,11 @@ namespace MonoKB.Main
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(int idHook,
             LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook,
+            LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
