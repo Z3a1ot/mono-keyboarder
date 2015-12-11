@@ -7,8 +7,8 @@
     <ProjectGuid>{0D0561CC-5FC4-4014-A159-980793C96780}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WinFormsLowLevelHook</RootNamespace>
-    <AssemblyName>WinFormsLowLevelHook</AssemblyName>
+    <RootNamespace>MonoKB.Main</RootNamespace>
+    <AssemblyName>MonoKB.Main</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IHook.cs" />
     <Compile Include="LowLevelHook.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

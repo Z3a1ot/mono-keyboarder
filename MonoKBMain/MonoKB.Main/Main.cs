@@ -1,21 +1,27 @@
-using System;
-using System.Diagnostics;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 
-class MonoKBMain
+namespace MonoKB.Main
 {
-
-    private static IHook m_hook;
-
-    public static void Main()
+    class MonoKBMain
     {
-        using (m_hook = new LowLevelHook())
+
+        private static IHook m_hook;
+
+        public static void Main()
         {
-            Application.Run();
-        };
+            using (m_hook = new LowLevelHook())
+            {
+                m_hook.MapKey(KeyCode.KEY_Q, KeyCode.KEY_Y);
+                m_hook.MapKey(KeyCode.KEY_A, KeyCode.KEY_H);
+                m_hook.MapKey(KeyCode.KEY_Z, KeyCode.KEY_N);
+                m_hook.MapKey(KeyCode.KEY_W, KeyCode.KEY_U);
+                m_hook.MapKey(KeyCode.KEY_S, KeyCode.KEY_J);
+                m_hook.MapKey(KeyCode.KEY_X, KeyCode.KEY_M);
+                Application.Run();
+            };
         
+        }
+
+
     }
-
-
 }
