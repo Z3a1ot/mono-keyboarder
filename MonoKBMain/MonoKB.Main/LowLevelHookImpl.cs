@@ -36,7 +36,7 @@ namespace MonoKB.Main
         /// Register hotkeys the application will listen to
         /// </summary>
         /// <param name="keyCodes">Key combination to listen to</param>
-        /// <returns></returns>
+        /// <returns>Collection of keycodes the hook failed to register as hotkey</returns>
         public KeyCode[] RegisterHotkeys(KeyCode[] keyCodes)
         {
             List<KeyCode> unsupportedCodes = new List<KeyCode>();
@@ -59,7 +59,7 @@ namespace MonoKB.Main
         /// </summary>
         /// <param name="from">Original Keyboard physical key</param>
         /// <param name="to">Logic key to be remapped to</param>
-        /// <returns></returns>
+        /// <returns>Was the mapping successful</returns>
         public bool MapKey(KeyCode from, KeyCode to)
         {
             if (!SupportedCodes.Contains(from) || !SupportedCodes.Contains(to))
@@ -68,7 +68,11 @@ namespace MonoKB.Main
             return true;
         }
 
+        /// <summary>
+        /// Collection of keycodes the hook supports
+        /// </summary>
         protected abstract KeyCode[] SupportedCodes { get; }
+
         #region native methods
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         protected static extern IntPtr SetWindowsHookEx(int idHook, LowLevelProc lpfn, IntPtr hMod, uint dwThreadId);
