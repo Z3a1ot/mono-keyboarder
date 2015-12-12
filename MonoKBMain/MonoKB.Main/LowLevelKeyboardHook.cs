@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace MonoKB.Main
 {
     public class LowLevelKeyboardHook : LowLevelHookImpl
     {
+        private readonly KeyCode[] m_supportedCodes;
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;
         private const int WM_KEYUP = 0x0101;
@@ -16,7 +18,9 @@ namespace MonoKB.Main
         public LowLevelKeyboardHook() : base()
         {
             m_map = new Dictionary<KeyCode, KeyCode>();
+            m_supportedCodes = (KeyCode[])Enum.GetValues(typeof(ValidKeyCodes));
         }
+
         protected override IntPtr SetHook(LowLevelProc proc)
         {
             using (Process curProcess = Process.GetCurrentProcess())
@@ -27,6 +31,13 @@ namespace MonoKB.Main
             }
         }
 
+        /// <summary>
+        /// Callback function which executes each type a key is presed
+        /// </summary>
+        /// <param name="nCode">hook code, should pass to CallNextHookEx without further processing if less than 0</param>
+        /// <param name="wParam">keyboard message id</param>
+        /// <param name="lParam">key input structure</param>
+        /// <returns></returns>
         protected override IntPtr HookCallBack(int nCode, IntPtr wParam, IntPtr lParam)
         {
             bool handled = false;
@@ -50,29 +61,12 @@ namespace MonoKB.Main
             return CallNextHookEx(m_hookID, nCode, wParam, lParam);
         }
 
-        public override KeyCode[] RegisterHotkeys(KeyCode[] keyCodes)
+        protected override KeyCode[] SupportedCodes
         {
-            List<KeyCode> unsupportedCodes = new List<KeyCode>();
-            foreach (KeyCode code in keyCodes)
+            get
             {
-                if (Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)code))
-                {
-                    m_hotkeys.Add(code, false);
-                }
-                else
-                {
-                    unsupportedCodes.Add(code);
-                }
+                return m_supportedCodes;
             }
-            return unsupportedCodes.ToArray();
-        }
-
-        public override bool MapKey(KeyCode from, KeyCode to)
-        {
-            if (!Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)from) || !Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)to))
-                return false;
-            m_map.Add(from, to);
-            return true;
         }
 
         private bool HandleKeyUp(KEYBDINPUT keybdinput)

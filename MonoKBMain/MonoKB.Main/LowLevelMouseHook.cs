@@ -1,14 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace MonoKB.Main
 {
     public class LowLevelMouseHook : LowLevelHookImpl
     {
-
+        private readonly KeyCode[] m_supportedCodes;
         private const int WH_MOUSE_LL = 14;
 
+        public LowLevelMouseHook()
+        {
+            m_supportedCodes = (KeyCode[])Enum.GetValues(typeof(ValidKeyCodes));
+        }
         protected override IntPtr SetHook(LowLevelProc proc)
         {
             using (Process curProcess = Process.GetCurrentProcess())
@@ -19,6 +24,13 @@ namespace MonoKB.Main
             }
         }
 
+        /// <summary>
+        /// Callback function which executes each type a mouse key is presed
+        /// </summary>
+        /// <param name="nCode">hook code, should pass to CallNextHookEx without further processing if less than 0</param>
+        /// <param name="wParam">mouse message id</param>
+        /// <param name="lParam">mouse input structure</param>
+        /// <returns></returns>
         protected override IntPtr HookCallBack(int nCode, IntPtr wParam, IntPtr lParam)
         {
             bool handled = false;
@@ -55,32 +67,7 @@ namespace MonoKB.Main
             }
             return CallNextHookEx(m_hookID, nCode, wParam, lParam);
         }
-
-        public override KeyCode[] RegisterHotkeys(KeyCode[] keyCodes)
-        {
-            List<KeyCode> unsupportedCodes = new List<KeyCode>();
-            foreach (KeyCode code in keyCodes)
-            {
-                if (Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)code))
-                {
-                    m_hotkeys.Add(code, false);
-                }
-                else
-                {
-                    unsupportedCodes.Add(code);
-                }
-            }
-            return unsupportedCodes.ToArray();
-        }
-
-        public override bool MapKey(KeyCode from, KeyCode to)
-        {
-            if (!Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)from) || !Enum.IsDefined(typeof(ValidKeyCodes), (ValidKeyCodes)to))
-                return false;
-            m_map.Add(@from, to);
-            return true;
-        }
-
+        
         private bool HandleMouseKeyUp(KeyCode buttonCode)
         {
             if (m_hotkeys.ContainsKey(buttonCode - 1)) // TODO: Remove the -1 and handle mouse codes properly
@@ -99,6 +86,14 @@ namespace MonoKB.Main
                 return false;
             }
             return false;
+        }
+
+        protected override KeyCode[] SupportedCodes
+        {
+            get
+            {
+                return m_supportedCodes;
+            }
         }
 
         private enum ValidKeyCodes : ushort

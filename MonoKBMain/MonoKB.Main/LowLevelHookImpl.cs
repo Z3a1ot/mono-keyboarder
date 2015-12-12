@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace MonoKB.Main
@@ -19,6 +20,9 @@ namespace MonoKB.Main
             m_proc = HookCallBack;
         }
 
+        /// <summary>
+        /// Init function to set up the hook. Must be called prior working with the hook
+        /// </summary>
         public void Init()
         {
             m_hookID = SetHook(m_proc);
@@ -28,10 +32,43 @@ namespace MonoKB.Main
 
         protected abstract IntPtr HookCallBack(int nCode, IntPtr wParam, IntPtr lParam);
 
-        public abstract KeyCode[] RegisterHotkeys(KeyCode[] keyCodes);
+        /// <summary>
+        /// Register hotkeys the application will listen to
+        /// </summary>
+        /// <param name="keyCodes">Key combination to listen to</param>
+        /// <returns></returns>
+        public KeyCode[] RegisterHotkeys(KeyCode[] keyCodes)
+        {
+            List<KeyCode> unsupportedCodes = new List<KeyCode>();
+            foreach (KeyCode code in keyCodes)
+            {
+                if (SupportedCodes.Contains(code))
+                {
+                    m_hotkeys.Add(code, false);
+                }
+                else
+                {
+                    unsupportedCodes.Add(code);
+                }
+            }
+            return unsupportedCodes.ToArray();
+        }
 
-        public abstract bool MapKey(KeyCode from, KeyCode to);
+        /// <summary>
+        /// Method to map the keys.
+        /// </summary>
+        /// <param name="from">Original Keyboard physical key</param>
+        /// <param name="to">Logic key to be remapped to</param>
+        /// <returns></returns>
+        public bool MapKey(KeyCode from, KeyCode to)
+        {
+            if (!SupportedCodes.Contains(from) || !SupportedCodes.Contains(to))
+                return false;
+            m_map.Add(from, to);
+            return true;
+        }
 
+        protected abstract KeyCode[] SupportedCodes { get; }
         #region native methods
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         protected static extern IntPtr SetWindowsHookEx(int idHook, LowLevelProc lpfn, IntPtr hMod, uint dwThreadId);
