@@ -1,4 +1,5 @@
 using System.Windows.Forms;
+using MonoKB.Main.Hook;
 
 namespace MonoKB.Main
 {
@@ -9,7 +10,7 @@ namespace MonoKB.Main
 
         public static void Main()
         {
-            using (m_hook = new LowLevelHook())
+            using (m_hook = new Hook.Hook())
             {
                 m_hook.SetHotKey(new KeyCode[] {KeyCode.LCONTROL, KeyCode.WM_MBUTTONDOWN});
                 m_hook.MapKey(KeyCode.KEY_Q, KeyCode.KEY_Y);

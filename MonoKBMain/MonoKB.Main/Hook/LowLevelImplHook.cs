@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace MonoKB.Main
+namespace MonoKB.Main.Hook
 {
-    public abstract class LowLevelHookImpl : IDisposable
+    public abstract class LowLevelImplHook : IDisposable
     {
         protected static Dictionary<KeyCode, bool> m_hotkeys = new Dictionary<KeyCode, bool>();
         protected LowLevelProc m_proc;
@@ -14,7 +14,7 @@ namespace MonoKB.Main
         protected IntPtr m_hookID = IntPtr.Zero;
         protected Dictionary<KeyCode, KeyCode> m_map;
 
-        protected LowLevelHookImpl()
+        protected LowLevelImplHook()
         {
             m_map = new Dictionary<KeyCode, KeyCode>();
             m_proc = HookCallBack;

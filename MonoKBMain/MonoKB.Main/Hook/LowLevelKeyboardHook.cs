@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace MonoKB.Main
+namespace MonoKB.Main.Hook
 {
-    public class LowLevelKeyboardHook : LowLevelHookImpl
+    public class LowLevelKeyboardHook : LowLevelImplHook
     {
         private readonly KeyCode[] m_supportedCodes;
         private const int WH_KEYBOARD_LL = 13;
@@ -46,12 +45,12 @@ namespace MonoKB.Main
                 if (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN)
                 {
                     KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
-                    handled = HandleKeyDown(input);
+                    handled = HandleKey(input, down: true);
                 }
                 else if (wParam == (IntPtr)WM_KEYUP || wParam == (IntPtr)WM_SYSKEYUP)
                 {
                     KEYBDINPUT input = (KEYBDINPUT)Marshal.PtrToStructure(lParam, typeof(KEYBDINPUT));
-                    handled = HandleKeyUp(input);
+                    handled = HandleKey(input, down: false);
                 }
             }
             if (handled)
@@ -69,23 +68,12 @@ namespace MonoKB.Main
             }
         }
 
-        private bool HandleKeyUp(KEYBDINPUT keybdinput)
+        private bool HandleKey(KEYBDINPUT keybdinput, bool down)
         {
             KeyCode keyCode = (KeyCode)keybdinput.Vk;
             if (m_hotkeys.ContainsKey(keyCode))
             {
-                m_hotkeys[keyCode] = false;
-                return true;
-            }
-            return false;
-        }
-
-        private bool HandleKeyDown(KEYBDINPUT keybdinput)
-        {
-            KeyCode keyCode = (KeyCode)keybdinput.Vk;
-            if (m_hotkeys.ContainsKey(keyCode))
-            {
-                m_hotkeys[keyCode] = true;
+                m_hotkeys[keyCode] = down;
                 return true;
             }
             if (!m_map.ContainsKey(keyCode) || m_hotkeys.ContainsValue(false))
@@ -94,14 +82,14 @@ namespace MonoKB.Main
                 return false;
             }
             keyCode = m_map[keyCode];
-            INPUT[] inputs = BuildNewInput(keyCode);
-            if (SendInput(2, inputs, Marshal.SizeOf(typeof(INPUT))) == 0)
-                throw new Exception();
+            INPUT[] inputs = BuildNewInput(keyCode, down);
+            if (SendInput((uint) inputs.Length, inputs, Marshal.SizeOf(typeof (INPUT))) == 0)
+                return false;
             return true;
         }
-        private INPUT[] BuildNewInput(KeyCode keyCode)
+
+        private INPUT[] BuildNewInput(KeyCode keyCode, bool down)
         {
-            //key down
             INPUT input = new INPUT
             {
                 Type = 1,
@@ -111,32 +99,14 @@ namespace MonoKB.Main
                     {
                         Vk = (ushort)keyCode,
                         Scan = 0,
-                        Flags = 0,
+                        Flags = down ? 0u : 2u,
                         Time = 0,
                         ExtraInfo = IntPtr.Zero,
                     }
                 }
             };
 
-
-            //key up
-            INPUT input2 = new INPUT
-            {
-                Type = 1,
-                Data =
-                {
-                    Keyboard = new KEYBDINPUT()
-                    {
-                        Vk = (ushort)keyCode,
-                        Scan = 0,
-                        Flags = 2,
-                        Time = 0,
-                        ExtraInfo = IntPtr.Zero
-                    }
-                }
-            };
-
-            INPUT[] inputs = { input, input2 };
+            INPUT[] inputs = { input };
             return inputs;
         }
 

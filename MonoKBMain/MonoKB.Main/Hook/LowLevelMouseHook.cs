@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
-namespace MonoKB.Main
+namespace MonoKB.Main.Hook
 {
-    public class LowLevelMouseHook : LowLevelHookImpl
+    public class LowLevelMouseHook : LowLevelImplHook
     {
         private readonly KeyCode[] m_supportedCodes;
         private const int WH_MOUSE_LL = 14;

@@ -1,18 +1,17 @@
 using System.Linq;
-using System.Windows.Forms;
 
-namespace MonoKB.Main
+namespace MonoKB.Main.Hook
 {
-    public class LowLevelHook : IHook
+    public class Hook : IHook
     {
 
 
-        private LowLevelHookImpl[] m_impls;
+        private LowLevelImplHook[] m_impls;
 
-        public LowLevelHook()
+        public Hook()
         {
-            m_impls = new LowLevelHookImpl[] {new LowLevelKeyboardHook(), new LowLevelMouseHook()};
-            foreach (LowLevelHookImpl impl in m_impls)
+            m_impls = new LowLevelImplHook[] {new LowLevelKeyboardHook(), new LowLevelMouseHook()};
+            foreach (LowLevelImplHook impl in m_impls)
             {
                 impl.Init();
             }
@@ -20,7 +19,7 @@ namespace MonoKB.Main
 
         public void Dispose()
         {
-            foreach (LowLevelHookImpl impl in m_impls)
+            foreach (LowLevelImplHook impl in m_impls)
             {
                 impl.Dispose();
             }
@@ -29,7 +28,7 @@ namespace MonoKB.Main
         public bool SetHotKey(KeyCode[] hotkeys)
         {
             KeyCode[] unregistered = hotkeys;
-            foreach (LowLevelHookImpl impl in m_impls)
+            foreach (LowLevelImplHook impl in m_impls)
             {
                 unregistered = impl.RegisterHotkeys(unregistered);
                 if (unregistered == null)
