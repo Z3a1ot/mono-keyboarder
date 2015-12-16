@@ -12,7 +12,9 @@ namespace MonoKB.Main
         {
             using (m_hook = new Hook.Hook())
             {
-                m_hook.SetHotKey(new KeyCode[] {KeyCode.LCONTROL, KeyCode.WM_MBUTTONDOWN});
+                m_hook.RegisterHotKey(HotKeyCode.LCONTROL);
+                m_hook.RegisterHotKey(MouseHotKeyCode.WM_MBUTTONDOWN);
+
                 m_hook.MapKey(KeyCode.KEY_Q, KeyCode.KEY_Y);
                 m_hook.MapKey(KeyCode.KEY_A, KeyCode.KEY_H);
                 m_hook.MapKey(KeyCode.KEY_Z, KeyCode.KEY_N);

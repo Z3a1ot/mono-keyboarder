@@ -7,7 +7,7 @@ namespace MonoKB.Main.Hook
 {
     public abstract class LowLevelImplHook : IDisposable
     {
-        protected static Dictionary<KeyCode, bool> m_hotkeys = new Dictionary<KeyCode, bool>();
+        protected static Dictionary<ushort, bool> m_hotkeys = new Dictionary<ushort, bool>();
         protected LowLevelProc m_proc;
 
         protected delegate IntPtr LowLevelProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -37,21 +37,12 @@ namespace MonoKB.Main.Hook
         /// </summary>
         /// <param name="keyCodes">Key combination to listen to</param>
         /// <returns>Collection of keycodes the hook failed to register as hotkey</returns>
-        public KeyCode[] RegisterHotkeys(KeyCode[] keyCodes)
+        public bool RegisterHotkeys(ushort keyCode)
         {
-            List<KeyCode> unsupportedCodes = new List<KeyCode>();
-            foreach (KeyCode code in keyCodes)
-            {
-                if (SupportedCodes.Contains(code))
-                {
-                    m_hotkeys.Add(code, false);
-                }
-                else
-                {
-                    unsupportedCodes.Add(code);
-                }
-            }
-            return unsupportedCodes.ToArray();
+            if (!SupportedHotKeyCodes.Contains(keyCode)) 
+                return false;
+            m_hotkeys.Add(keyCode, false);
+            return true;
         }
 
         /// <summary>
@@ -62,7 +53,7 @@ namespace MonoKB.Main.Hook
         /// <returns>Was the mapping successful</returns>
         public bool MapKey(KeyCode from, KeyCode to)
         {
-            if (!SupportedCodes.Contains(from) || !SupportedCodes.Contains(to))
+            if (!SupportedKeyCodes.Contains(from) || !SupportedKeyCodes.Contains(to))
                 return false;
             m_map.Add(from, to);
             return true;
@@ -71,7 +62,12 @@ namespace MonoKB.Main.Hook
         /// <summary>
         /// Collection of keycodes the hook supports
         /// </summary>
-        protected abstract KeyCode[] SupportedCodes { get; }
+        protected abstract KeyCode[] SupportedKeyCodes { get; }        
+        
+        /// <summary>
+        /// Collection of keycodes the hook supports
+        /// </summary>
+        protected abstract ushort[] SupportedHotKeyCodes { get; }
 
         #region native methods
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]

@@ -8,18 +8,17 @@ namespace MonoKB.Test
 
 
     [TestClass]
-    public class LowLevelKeyBoardHookTest
+    public class LowLevelMouseHookTest
     {
-        
+
         protected static LowLevelImplHook m_hook;
 
         [ClassInitialize]
         public static void Init(TestContext context)
         {
-            m_hook = new LowLevelKeyboardHook();
+            m_hook = new LowLevelMouseHook();
             m_hook.Init();
-        } 
-
+        }
         [ClassCleanup]
         public static void CleanUp()
         {
@@ -31,7 +30,7 @@ namespace MonoKB.Test
         {
             Assert.IsNotNull(m_hook);
 
-            bool result = m_hook.RegisterHotkeys((ushort)HotKeyCode.LSHIFT);
+            bool result = m_hook.RegisterHotkeys((ushort)MouseHotKeyCode.WM_LBUTTONDOWN);
 
             Assert.IsTrue(result);
         }
@@ -42,11 +41,9 @@ namespace MonoKB.Test
             Assert.IsNotNull(m_hook);
 
             bool result = false;
-            result = m_hook.MapKey(KeyCode.KEY_A, KeyCode.KEY_B);
-            Assert.AreEqual(true, result);
-
-
-
+            result = m_hook.MapKey(KeyCode.KEY_0, KeyCode.KEY_2);
+            Assert.IsFalse(result);
+            
         }
     }
 }

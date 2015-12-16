@@ -5,12 +5,14 @@ namespace MonoKB.Main.Hook
 {
     public class LowLevelMouseHook : LowLevelImplHook
     {
-        private readonly KeyCode[] m_supportedCodes;
+        private readonly KeyCode[] m_SupportedKeyCodes;
+        private readonly ushort[] m_SupportedHotKeyCodes;
         private const int WH_MOUSE_LL = 14;
 
         public LowLevelMouseHook()
         {
-            m_supportedCodes = (KeyCode[])Enum.GetValues(typeof(ValidKeyCodes));
+            m_SupportedKeyCodes = new KeyCode[0];
+            m_SupportedHotKeyCodes = (ushort[])Enum.GetValues(typeof(MouseHotKeyCode));
         }
         protected override IntPtr SetHook(LowLevelProc proc)
         {
@@ -34,30 +36,23 @@ namespace MonoKB.Main.Hook
             bool handled = false;
             if (nCode >= 0)
             {
-                if (wParam == (IntPtr)KeyCode.WM_RBUTTONDOWN)
+                switch ((MouseHotKeyCode)wParam)
                 {
-                    handled = HandleMouseKeyDown(KeyCode.WM_RBUTTONDOWN);
+                    case MouseHotKeyCode.WM_RBUTTONDOWN:
+                    case MouseHotKeyCode.WM_MBUTTONDOWN:
+                    case MouseHotKeyCode.WM_LBUTTONDOWN:
+                        handled = HandleMouseKeyDown((ushort)wParam);
+                        break;
+                    case MouseHotKeyCode.WM_RBUTTONUP:
+                    case MouseHotKeyCode.WM_MBUTTONUP:
+                    case MouseHotKeyCode.WM_LBUTTONUP:
+                        handled = HandleMouseKeyUp((ushort)wParam);
+                        break;
+                    default:
+                        handled = false;
+                        break;
                 }
-                else if (wParam == (IntPtr)KeyCode.WM_MBUTTONDOWN)
-                {
-                    handled = HandleMouseKeyDown(KeyCode.WM_MBUTTONDOWN);
-                }
-                else if (wParam == (IntPtr)KeyCode.WM_LBUTTONDOWN)
-                {
-                    handled = HandleMouseKeyDown(KeyCode.WM_LBUTTONDOWN);
-                }
-                else if (wParam == (IntPtr)KeyCode.WM_RBUTTONUP)
-                {
-                    handled = HandleMouseKeyUp(KeyCode.WM_RBUTTONUP);
-                }
-                else if (wParam == (IntPtr)KeyCode.WM_LBUTTONDOWN)
-                {
-                    handled = HandleMouseKeyUp(KeyCode.WM_LBUTTONUP);
-                }
-                else if (wParam == (IntPtr)KeyCode.WM_MBUTTONDOWN)
-                {
-                    handled = HandleMouseKeyUp(KeyCode.WM_MBUTTONUP);
-                }
+
             }
             if (handled)
             {
@@ -65,18 +60,18 @@ namespace MonoKB.Main.Hook
             }
             return CallNextHookEx(m_hookID, nCode, wParam, lParam);
         }
-        
-        private bool HandleMouseKeyUp(KeyCode buttonCode)
+
+        private bool HandleMouseKeyUp(ushort buttonCode)
         {
-            if (m_hotkeys.ContainsKey(buttonCode - 1)) // TODO: Remove the -1 and handle mouse codes properly
+            if (m_hotkeys.ContainsKey((ushort)(buttonCode - 1))) // TODO: Remove the -1 and handle mouse codes properly
             {
-                m_hotkeys[buttonCode] = false;
+                m_hotkeys[(ushort)(buttonCode - 1)] = false;
                 return false;
             }
             return false;
         }
 
-        private bool HandleMouseKeyDown(KeyCode buttonCode)
+        private bool HandleMouseKeyDown(ushort buttonCode)
         {
             if (m_hotkeys.ContainsKey(buttonCode))
             {
@@ -86,24 +81,20 @@ namespace MonoKB.Main.Hook
             return false;
         }
 
-        protected override KeyCode[] SupportedCodes
+        protected override KeyCode[] SupportedKeyCodes
         {
             get
             {
-                return m_supportedCodes;
+                return m_SupportedKeyCodes;
             }
         }
 
-        private enum ValidKeyCodes : ushort
+        protected override ushort[] SupportedHotKeyCodes
         {
-            WM_LBUTTONDOWN = 0x0201,
-            WM_LBUTTONUP = 0x0202,
-            WM_MOUSEMOVE = 0x0200,
-            WM_MOUSEWHEEL = 0x020A,
-            WM_RBUTTONDOWN = 0x0204,
-            WM_RBUTTONUP = 0x0205,
-            WM_MBUTTONDOWN = 0x0207,
-            WM_MBUTTONUP = 0x0208
+            get
+            {
+                return m_SupportedHotKeyCodes;
+            }
         }
     }
 }
