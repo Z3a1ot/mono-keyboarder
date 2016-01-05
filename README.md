@@ -1,15 +1,15 @@
 # mono-keyboarder
 
-# The Idea
+## The Idea
   
   Save time working with keyboard + mouse by eliminating the need to move your hand from the mouse to the keyboard.
   I know it sounds like not much but there are a couple of people out there who might benefit from it.
   
-# Requirements
+## Requirements
 
   A keyboard and a mouse (doh :)) with extended buttons preferrably (those two by your thumb).
   
-# Limitations
+## Limitations
 
   * Windows only at the moment.
   * Due to the nature of the application working as a hook, other hooks installed might interfere with
@@ -17,11 +17,11 @@
   * Due to no graphic or other external input currently the mapping is hardcoded in the code
   * Exit is done only by killing the process
   
-# Installation
+## Installation
 
   Not released yet so the best install is just clone and compile with VS13 and up on windows.
 
-# Usage
+## Usage
 
   Follow the example provided in Main.cs. In any case it goes like this:
   * Create new instance of Hook
@@ -32,6 +32,6 @@
   
   Thats it. Don't forget to kill the process once you are done to restore normal functionality.
   
-# License
+## License
 
   The license is included as LICENSE in this directory
