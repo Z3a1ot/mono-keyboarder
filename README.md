@@ -27,6 +27,8 @@
   * Create new instance of Hook
   * Register hotkeys with RegisterHotKey(HotKeyCode.LCONTROL)
   * Register mapping with MapKey(KeyCode.KEY_Q, KeyCode.KEY_Y)
+  * Compile using VS
+  * Run executable to start working
   
   Thats it. Don't forget to kill the process once you are done to restore normal functionality.
   
